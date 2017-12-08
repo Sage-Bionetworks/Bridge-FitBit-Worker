@@ -1,0 +1,13 @@
+org/sagebionetworks/bridge/fitbit/worker/PopulatedTable.class
+org/sagebionetworks/bridge/fitbit/worker/BridgeFitBitWorkerProcessor.class
+org/sagebionetworks/bridge/fitbit/schema/EndpointSchema.class
+org/sagebionetworks/bridge/fitbit/fitbit/FitBitUser.class
+org/sagebionetworks/bridge/fitbit/schema/ColumnSchema.class
+org/sagebionetworks/bridge/fitbit/schema/ColumnSchema$1.class
+org/sagebionetworks/bridge/fitbit/schema/TableSchema.class
+org/sagebionetworks/bridge/fitbit/worker/BridgeFitBitWorkerProcessor$1.class
+org/sagebionetworks/bridge/fitbit/config/SpringConfig.class
+org/sagebionetworks/bridge/fitbit/schema/UrlParameterType.class
+org/sagebionetworks/bridge/fitbit/schema/ColumnSchema$Builder.class
+org/sagebionetworks/bridge/fitbit/config/SpringConfig$1.class
+org/sagebionetworks/bridge/fitbit/worker/RequestContext.class
