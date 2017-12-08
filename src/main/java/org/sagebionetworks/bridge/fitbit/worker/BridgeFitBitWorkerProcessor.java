@@ -83,8 +83,10 @@ public class BridgeFitBitWorkerProcessor implements ThrowingConsumer<JsonNode> {
             for (Study oneStudy : studyList) {
                 String studyId = oneStudy.getIdentifier();
 
-                if (oneStudy.getSynapseProjectId() == null || oneStudy.getSynapseDataAccessTeamId() == null ||
-                        oneStudy.getOAuthProviders() == null || !oneStudy.getOAuthProviders().containsKey("fitbit")) {
+                if (oneStudy.getSynapseProjectId() == null
+                        || oneStudy.getSynapseDataAccessTeamId() == null
+                        || oneStudy.getOAuthProviders() == null
+                        || !oneStudy.getOAuthProviders().containsKey(Constants.FITBIT_VENDOR_ID)) {
                     // This study is either not configured for Synapse or is not configured for FitBit. Skip.
                     LOG.info("Skipping study " + studyId);
                 }
