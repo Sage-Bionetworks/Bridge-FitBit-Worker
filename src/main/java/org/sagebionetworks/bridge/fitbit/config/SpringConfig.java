@@ -20,7 +20,6 @@ import org.sagebionetworks.bridge.json.DefaultObjectMapper;
 @ComponentScan("org.sagebionetworks.bridge.fitbit")
 @Configuration
 public class SpringConfig {
-    // todo: should this be gotten from a web service instead of a hardcoded file in the repo?
     @Bean(name = "endpointSchemas")
     public List<EndpointSchema> endpointSchemas() throws IOException {
         ClassLoader classLoader = getClass().getClassLoader();

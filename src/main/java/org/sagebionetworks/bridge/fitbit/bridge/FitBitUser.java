@@ -1,5 +1,7 @@
 package org.sagebionetworks.bridge.fitbit.bridge;
 
+import org.apache.commons.lang3.StringUtils;
+
 /** Represents a FitBit user in Bridge. Encapsulates the user's health code, FitBit user ID, and FitBit access token. */
 public class FitBitUser {
     private final String accessToken;
@@ -54,6 +56,17 @@ public class FitBitUser {
 
         /** Builds the FitBitUser */
         public FitBitUser build() {
+            // All attributes must be non-null.
+            if (StringUtils.isBlank(accessToken)) {
+                throw new IllegalStateException("accessToken must be specified");
+            }
+            if (StringUtils.isBlank(healthCode)) {
+                throw new IllegalStateException("healthCode must be specified");
+            }
+            if (StringUtils.isBlank(userId)) {
+                throw new IllegalStateException("userId must be specified");
+            }
+
             return new FitBitUser(accessToken, healthCode, userId);
         }
     }
