@@ -22,7 +22,7 @@ public class BridgeHelper {
     }
 
     /** Gets an iterator for all FitBit users in the given study. */
-    public FitBitUserIterator getFitBitUsersForStudy(String studyId) {
+    public Iterable<FitBitUser> getFitBitUsersForStudy(String studyId) {
         return new FitBitUserIterator(clientManager, studyId);
     }
 

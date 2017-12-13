@@ -79,6 +79,12 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>org.sagebionetworks</groupId>
+            <artifactId>BridgeTestUtils</artifactId>
+            <version>1.2</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.testng</groupId>
             <artifactId>testng</artifactId>
             <version>6.1.1</version>
@@ -119,10 +125,11 @@
                     <excludes>
                         <!-- config is inherently not testable -->
                         <exclude>org/sagebionetworks/bridge/fitbit/config/*</exclude>
+
+                        <!-- constants are also not testable -->
+                        <exclude>org/sagebionetworks/bridge/fitbit/worker/Constants.class</exclude>
                     </excludes>
                     <rules>
-                    <!--
-                        TODO add rules back in before checkin
                         <rule>
                             <element>BUNDLE</element>
                             <limits>
@@ -138,7 +145,6 @@
                                 </limit>
                             </limits>
                         </rule>
-                    -->
                     </rules>
                 </configuration>
                 <executions>

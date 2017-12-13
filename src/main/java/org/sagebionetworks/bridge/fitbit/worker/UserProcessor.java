@@ -9,17 +9,22 @@ import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.http.client.fluent.Request;
-import org.joda.time.DateTime;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import org.sagebionetworks.bridge.fitbit.bridge.FitBitUser;
 import org.sagebionetworks.bridge.fitbit.schema.ColumnSchema;
 import org.sagebionetworks.bridge.fitbit.schema.EndpointSchema;
 import org.sagebionetworks.bridge.fitbit.schema.TableSchema;
 import org.sagebionetworks.bridge.fitbit.schema.UrlParameterType;
+import org.sagebionetworks.bridge.fitbit.util.Utils;
 import org.sagebionetworks.bridge.json.DefaultObjectMapper;
 
+/** The User Processor downloads data from the FitBit Web API and collates the data into tables. */
 public class UserProcessor {
-    // todo refactor
+    private static final Logger LOG = LoggerFactory.getLogger(UserProcessor.class);
+
+    /** Processes the given endpoint for the given user. This is the main entry point into the User Processor. */
     public void processEndpointForUser(RequestContext ctx, FitBitUser user, EndpointSchema endpointSchema)
             throws IOException {
         // Generate url parameters
@@ -37,9 +42,7 @@ public class UserProcessor {
 
         // Get data from FitBit
         String url = String.format(endpointSchema.getUrl(), resolvedUrlParamList.toArray());
-        String response = Request.Get(url)
-                .setHeader("Authorization", "Bearer " + user.getAccessToken()).execute()
-                .returnContent().asString();
+        String response = makeHttpRequest(url, user.getAccessToken());
         JsonNode responseNode = DefaultObjectMapper.INSTANCE.readTree(response);
 
         // Process each key (top-level table) in the response
@@ -63,16 +66,17 @@ public class UserProcessor {
                     // The object is the row we need to process.
                     processTableRowForUser(ctx, user, endpointSchema, oneTableSchema, dataNode);
                 } else {
-                    // todo warn
+                    warnWrapper("Table " + tableId + " is neither array nor object for user " +
+                            user.getHealthCode());
                 }
             } else if (!endpointSchema.getIgnoredKeys().contains(oneResponseKey)) {
-                // todo warn about unexpected key
+                warnWrapper("Unexpected table " + tableId + " for user " + user.getHealthCode());
             }
         }
     }
 
-    // todo refactor
-    public void processTableRowForUser(RequestContext ctx, FitBitUser user, EndpointSchema endpointSchema,
+    // Helper to process a single row of FitBit data.
+    private void processTableRowForUser(RequestContext ctx, FitBitUser user, EndpointSchema endpointSchema,
             TableSchema tableSchema, JsonNode rowNode) {
         String tableId = endpointSchema.getEndpointId() + '.' + tableSchema.getTableKey();
         PopulatedTable populatedTable = ctx.getPopulatedTablesById().get(tableId);
@@ -86,44 +90,10 @@ public class UserProcessor {
 
             ColumnSchema columnSchema = tableSchema.getColumnsById().get(oneColumnName);
             if (columnSchema == null) {
-                // todo warn
+                warnWrapper("Unexpected column " + oneColumnName + " in table " + tableId + " for user " +
+                        user.getHealthCode());
             } else {
-                Object value = null;
-                switch (columnSchema.getColumnType()) {
-                    case BOOLEAN:
-                        value = columnValueNode.booleanValue();
-                        break;
-                    case DATE:
-                        // Currently, all dates from FitBit web API are in UTC, so we can just use epoch milliseconds,
-                        // which is what Synapse expects anyway.
-                        String dateTimeStr = columnValueNode.textValue();
-                        value = DateTime.parse(dateTimeStr).getMillis();
-                        break;
-                    case DOUBLE:
-                        value = columnValueNode.decimalValue().toPlainString();
-                        break;
-                    case INTEGER:
-                        value = columnValueNode.longValue();
-                        break;
-                    case LARGETEXT:
-                        // LargeText is used for when the value is an array or an object. In this case, we want to
-                        // write the JSON verbatim to Synapse.
-                        value = columnValueNode;
-                        break;
-                    case STRING:
-                        // Strings have a max length. If the string is too long, truncate it.
-                        String textValue = columnValueNode.textValue();
-                        if (textValue.length() > columnSchema.getMaxLength()) {
-                            // todo warn
-                            textValue = textValue.substring(0, columnSchema.getMaxLength());
-                        }
-                        value = textValue;
-                        break;
-                    default:
-                        // todo warn
-                        break;
-                }
-
+                Object value = Utils.serializeJsonForColumn(columnValueNode, columnSchema);
                 if (value != null) {
                     rowValueMap.put(oneColumnName, value.toString());
                 }
@@ -138,5 +108,18 @@ public class UserProcessor {
             // Add the row to the table
             populatedTable.getRowList().add(rowValueMap);
         }
+    }
+
+    // Abstracts away the HTTP call to FitBit Web API.
+    // Visible for testing.
+    String makeHttpRequest(String url, String accessToken) throws IOException {
+        return Request.Get(url).setHeader("Authorization", "Bearer " + accessToken).execute()
+                .returnContent().asString();
+    }
+
+    // Warn wrapper, so that we can use mocks and spies to verify that we're handling unusual cases.
+    // Visible for testing
+    void warnWrapper(String msg) {
+        LOG.warn(msg);
     }
 }

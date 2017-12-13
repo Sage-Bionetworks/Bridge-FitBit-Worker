@@ -53,10 +53,10 @@ public class BridgeHelperTest {
         when(mockClientManager.getClient(ForWorkersApi.class)).thenReturn(mockApi);
 
         // Execute
-        FitBitUserIterator fitBitUserIterator = bridgeHelper.getFitBitUsersForStudy(STUDY_ID);
+        Iterable<FitBitUser> fitBitUserIterable = bridgeHelper.getFitBitUsersForStudy(STUDY_ID);
 
         // Verify basics, like return value is not null, and we called the API with the right study ID.
-        assertNotNull(fitBitUserIterator);
+        assertNotNull(fitBitUserIterable);
         verify(mockApi).getHealthCodesGrantingOAuthAccess(eq(STUDY_ID), any(), any(), any());
     }
 

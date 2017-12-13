@@ -4,7 +4,7 @@ Bridge Worker for FitBit Integration
 To run a full build (including compile, unit tests, findbugs, and jacoco test coverage), run:
 mvn verify
 
-(A full build takes about ? min ?? seconds on my laptop, from a clean workspace.)
+(A full build takes about 24 seconds on my laptop, from a clean workspace.)
 
 To just run findbugs, run:
 mvn compile findbugs:check
