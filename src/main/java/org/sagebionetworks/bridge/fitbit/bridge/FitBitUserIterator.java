@@ -10,7 +10,7 @@ import org.sagebionetworks.bridge.rest.model.ForwardCursorStringList;
 import org.sagebionetworks.bridge.rest.model.OAuthAccessToken;
 
 /** Helper class to abstract away Bridge's paginated API for OAuth tokens. */
-public class FitBitUserIterator implements Iterable<FitBitUser>, Iterator<FitBitUser> {
+public class FitBitUserIterator implements Iterator<FitBitUser> {
     // Package-scoped for unit tests
     static final int PAGESIZE = 10;
 
@@ -48,12 +48,6 @@ public class FitBitUserIterator implements Iterable<FitBitUser>, Iterator<FitBit
 
         // Reset nextIndex.
         nextIndex = 0;
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public Iterator<FitBitUser> iterator() {
-        return this;
     }
 
     /** {@inheritDoc} */

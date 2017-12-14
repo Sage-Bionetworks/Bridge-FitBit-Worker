@@ -1,6 +1,7 @@
 package org.sagebionetworks.bridge.fitbit.bridge;
 
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,7 +12,7 @@ import org.sagebionetworks.bridge.rest.api.StudiesApi;
 import org.sagebionetworks.bridge.rest.model.Study;
 
 /** Encapsulates calls to Bridge server. */
-@Component
+@Component("FitBitWorkerBridgeHelper")
 public class BridgeHelper {
     private ClientManager clientManager;
 
@@ -22,13 +23,18 @@ public class BridgeHelper {
     }
 
     /** Gets an iterator for all FitBit users in the given study. */
-    public Iterable<FitBitUser> getFitBitUsersForStudy(String studyId) {
+    public Iterator<FitBitUser> getFitBitUsersForStudy(String studyId) {
         return new FitBitUserIterator(clientManager, studyId);
     }
 
-    /** Gets all study summaries (worker API, active studies only). */
+    /** Gets all study summaries (worker API, active studies only). Note that these studies only contain study ID. */
     public List<Study> getAllStudies() throws IOException {
         return clientManager.getClient(StudiesApi.class).getStudies(/* summary */true).execute().body()
                 .getItems();
+    }
+
+    /** Gets the study for the given ID. */
+    public Study getStudy(String studyId) throws IOException {
+        return clientManager.getClient(StudiesApi.class).getStudy(studyId).execute().body();
     }
 }

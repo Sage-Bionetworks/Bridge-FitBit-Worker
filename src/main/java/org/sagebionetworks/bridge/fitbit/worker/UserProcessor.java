@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.apache.http.client.fluent.Request;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 
 import org.sagebionetworks.bridge.fitbit.bridge.FitBitUser;
 import org.sagebionetworks.bridge.fitbit.schema.ColumnSchema;
@@ -21,6 +22,7 @@ import org.sagebionetworks.bridge.fitbit.util.Utils;
 import org.sagebionetworks.bridge.json.DefaultObjectMapper;
 
 /** The User Processor downloads data from the FitBit Web API and collates the data into tables. */
+@Component
 public class UserProcessor {
     private static final Logger LOG = LoggerFactory.getLogger(UserProcessor.class);
 

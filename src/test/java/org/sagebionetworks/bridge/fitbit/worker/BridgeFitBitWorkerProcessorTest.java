@@ -34,6 +34,9 @@ public class BridgeFitBitWorkerProcessorTest {
 
         processor = spy(new BridgeFitBitWorkerProcessor());
         processor.setBridgeHelper(mockBridgeHelper);
+
+        // Set rate limit to 1000 so tests aren't bottlenecked by the rate limiter.
+        processor.setPerStudyRateLimit(1000.0);
     }
 
     // branch coverage
@@ -56,6 +59,16 @@ public class BridgeFitBitWorkerProcessorTest {
     @Test
     public void multipleStudies() throws Exception {
         // Make studies for test. First study is unconfigured. Second study throws. Third and fourth study succeed.
+
+        // Mock study summaries call. This call returns studies that only have study ID.
+        Study studySummary1 = new Study().identifier("study1");
+        Study studySummary2 = new Study().identifier("study2");
+        Study studySummary3 = new Study().identifier("study3");
+        Study studySummary4 = new Study().identifier("study4");
+        when(mockBridgeHelper.getAllStudies()).thenReturn(ImmutableList.of(studySummary1, studySummary2, studySummary3,
+                studySummary4));
+
+        // Mock get study call. This returns a "full" study.
         Study study1 = new Study().identifier("study1");
         Study study2 = new Study().identifier("study2").synapseProjectId("project-2").synapseDataAccessTeamId(2222L)
                 .putOAuthProvidersItem(Constants.FITBIT_VENDOR_ID, new OAuthProvider());
@@ -63,7 +76,11 @@ public class BridgeFitBitWorkerProcessorTest {
                 .putOAuthProvidersItem(Constants.FITBIT_VENDOR_ID, new OAuthProvider());
         Study study4 = new Study().identifier("study4").synapseProjectId("project-4").synapseDataAccessTeamId(4444L)
                 .putOAuthProvidersItem(Constants.FITBIT_VENDOR_ID, new OAuthProvider());
-        when(mockBridgeHelper.getAllStudies()).thenReturn(ImmutableList.of(study1, study2, study3, study4));
+
+        when(mockBridgeHelper.getStudy("study1")).thenReturn(study1);
+        when(mockBridgeHelper.getStudy("study2")).thenReturn(study2);
+        when(mockBridgeHelper.getStudy("study3")).thenReturn(study3);
+        when(mockBridgeHelper.getStudy("study4")).thenReturn(study4);
 
         // Spy processStudy(). This is tested elsewhere.
         doAnswer(invocation -> {

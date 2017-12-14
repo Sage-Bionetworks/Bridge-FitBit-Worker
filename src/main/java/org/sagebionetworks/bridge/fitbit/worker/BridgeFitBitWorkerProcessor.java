@@ -2,6 +2,7 @@ package org.sagebionetworks.bridge.fitbit.worker;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -32,6 +33,7 @@ public class BridgeFitBitWorkerProcessor implements ThrowingConsumer<JsonNode> {
     private static final int REPORTING_INTERVAL = 10;
     static final String REQUEST_PARAM_DATE = "date";
 
+    private final RateLimiter perStudyRateLimiter = RateLimiter.create(1.0);
     private final RateLimiter perUserRateLimiter = RateLimiter.create(1.0);
 
     private BridgeHelper bridgeHelper;
@@ -56,6 +58,11 @@ public class BridgeFitBitWorkerProcessor implements ThrowingConsumer<JsonNode> {
     @Autowired
     public final void setFileHelper(FileHelper fileHelper) {
         this.fileHelper = fileHelper;
+    }
+
+    /** Set rate limit, in studies per second. */
+    public final void setPerStudyRateLimit(double rate) {
+        perStudyRateLimiter.setRate(rate);
     }
 
     /** Set rate limit, in users per second. */
@@ -87,22 +94,27 @@ public class BridgeFitBitWorkerProcessor implements ThrowingConsumer<JsonNode> {
 
         LOG.info("Received request for date " + dateString);
         Stopwatch requestStopwatch = Stopwatch.createStarted();
-        List<Study> studyList = bridgeHelper.getAllStudies();
-        for (Study oneStudy : studyList) {
-            String studyId = oneStudy.getIdentifier();
-            if (Utils.isStudyConfigured(oneStudy)) {
-                LOG.info("Processing study " + studyId);
-                Stopwatch studyStopwatch = Stopwatch.createStarted();
-                try {
-                    processStudy(dateString, oneStudy);
-                } catch (Exception ex) {
-                    LOG.error("Error processing study " + studyId + ": " + ex.getMessage(), ex);
-                } finally {
-                    LOG.info("Finished processing study " + studyId + " in " + studyStopwatch.elapsed(TimeUnit.SECONDS)
-                            + " seconds");
+        List<Study> studySummaryList = bridgeHelper.getAllStudies();
+        for (Study oneStudySummary : studySummaryList) {
+            perStudyRateLimiter.acquire();
+
+            String studyId = oneStudySummary.getIdentifier();
+            Stopwatch studyStopwatch = Stopwatch.createStarted();
+            try {
+                // Study summary only contains ID. Get full study summary from details.
+                Study study = bridgeHelper.getStudy(studyId);
+
+                if (Utils.isStudyConfigured(study)) {
+                    LOG.info("Processing study " + studyId);
+                    processStudy(dateString, study);
+                } else {
+                    LOG.info("Skipping study " + studyId);
                 }
-            } else {
-                LOG.info("Skipping study " + studyId);
+            } catch (Exception ex) {
+                LOG.error("Error processing study " + studyId + ": " + ex.getMessage(), ex);
+            } finally {
+                LOG.info("Finished processing study " + studyId + " in " +
+                        studyStopwatch.elapsed(TimeUnit.SECONDS) + " seconds");
             }
         }
         LOG.info("Finished processing request for date " + dateString + " in " +
@@ -119,21 +131,26 @@ public class BridgeFitBitWorkerProcessor implements ThrowingConsumer<JsonNode> {
             RequestContext ctx = new RequestContext(dateString, study, tmpDir);
 
             // Get list of users (and their keys)
-            Iterable<FitBitUser> fitBitUserIter = bridgeHelper.getFitBitUsersForStudy(study.getIdentifier());
+            Iterator<FitBitUser> fitBitUserIter = bridgeHelper.getFitBitUsersForStudy(study.getIdentifier());
             LOG.info("Processing users in study " + studyId);
             int numUsers = 0;
             Stopwatch userStopwatch = Stopwatch.createStarted();
-            for (FitBitUser oneUser : fitBitUserIter) {
+            while (fitBitUserIter.hasNext()) {
                 perUserRateLimiter.acquire();
+                try {
+                    FitBitUser oneUser = fitBitUserIter.next();
 
-                // Call and process endpoints.
-                for (EndpointSchema oneEndpointSchema : endpointSchemas) {
-                    try {
-                        userProcessor.processEndpointForUser(ctx, oneUser, oneEndpointSchema);
-                    } catch (Exception ex) {
-                        LOG.error("Error processing user for healthCode " + oneUser.getHealthCode() + " on endpoint " +
-                                oneEndpointSchema.getEndpointId() + ": " + ex.getMessage(), ex);
+                    // Call and process endpoints.
+                    for (EndpointSchema oneEndpointSchema : endpointSchemas) {
+                        try {
+                            userProcessor.processEndpointForUser(ctx, oneUser, oneEndpointSchema);
+                        } catch (Exception ex) {
+                            LOG.error("Error processing user for healthCode " + oneUser.getHealthCode() +
+                                    " on endpoint " + oneEndpointSchema.getEndpointId() + ": " + ex.getMessage(), ex);
+                        }
                     }
+                } catch (Exception ex) {
+                    LOG.error("Error getting next user: " + ex.getMessage(), ex);
                 }
 
                 // Reporting

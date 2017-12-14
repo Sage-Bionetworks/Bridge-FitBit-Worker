@@ -17,6 +17,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterators;
 import org.mockito.ArgumentCaptor;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -66,7 +67,7 @@ public class BridgeFitBitWorkerProcessorProcessStudyTest {
         FitBitUser user0 = makeUser(0);
         FitBitUser user1 = makeUser(1);
         FitBitUser user2 = makeUser(2);
-        when(mockBridgeHelper.getFitBitUsersForStudy(STUDY_ID)).thenReturn(ImmutableList.of(user0, user1, user2));
+        when(mockBridgeHelper.getFitBitUsersForStudy(STUDY_ID)).thenReturn(Iterators.forArray(user0, user1, user2));
 
         // Mock endpoint schema, so we don't have to construct the whole thing.
 
@@ -137,7 +138,7 @@ public class BridgeFitBitWorkerProcessorProcessStudyTest {
 
         // Mock BridgeHelper to return users.
         FitBitUser user0 = makeUser(0);
-        when(mockBridgeHelper.getFitBitUsersForStudy(STUDY_ID)).thenReturn(ImmutableList.of(user0));
+        when(mockBridgeHelper.getFitBitUsersForStudy(STUDY_ID)).thenReturn(Iterators.forArray(user0));
 
         // Mock endpoint schemas, so we don't have to construct the whole thing.
         EndpointSchema mockEndpointSchema0 = mockEndpointSchema(0);
