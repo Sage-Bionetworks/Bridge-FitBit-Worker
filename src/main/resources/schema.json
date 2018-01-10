@@ -141,5 +141,44 @@
                 ]
             }
         ]
+    },
+    {
+        "endpointId":"HeartRate",
+        "url":"https://api.fitbit.com/1/user/%s/activities/heart/date/%s/1d/1sec.json",
+        "urlParameters":["USER_ID", "DATE"],
+        "tables":[
+            {
+                "tableKey":"activities-heart",
+                "columns":[
+                    {
+                        "columnId":"dateTime",
+                        "columnType":"STRING",
+                        "maxLength":10
+                    },
+                    {
+                        "columnId":"value",
+                        "columnType":"LARGETEXT"
+                    }
+                ]
+            },
+            {
+                "tableKey":"activities-heart-intraday",
+                "columns":[
+                    {
+                        "columnId":"dataset",
+                        "columnType":"LARGETEXT"
+                    },
+                    {
+                        "columnId":"datasetInterval",
+                        "columnType":"INTEGER"
+                    },
+                    {
+                        "columnId":"datasetType",
+                        "columnType":"STRING",
+                        "maxLength":6
+                    }
+                ]
+            }
+        ]
     }
 ]
