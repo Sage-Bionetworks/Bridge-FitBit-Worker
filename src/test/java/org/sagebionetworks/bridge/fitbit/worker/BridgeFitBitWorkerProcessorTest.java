@@ -3,7 +3,9 @@ package org.sagebionetworks.bridge.fitbit.worker;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -12,6 +14,7 @@ import static org.testng.Assert.assertEquals;
 
 import java.util.List;
 
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableList;
 import org.mockito.ArgumentCaptor;
@@ -109,5 +112,54 @@ public class BridgeFitBitWorkerProcessorTest {
         assertEquals(processedStudyList.get(0).getIdentifier(), "study2");
         assertEquals(processedStudyList.get(1).getIdentifier(), "study3");
         assertEquals(processedStudyList.get(2).getIdentifier(), "study4");
+    }
+
+    @Test(expectedExceptions = PollSqsWorkerBadRequestException.class, expectedExceptionsMessageRegExp =
+            "studyWhitelist must be an array")
+    public void studyWhitelistNotArray() throws Exception {
+        ObjectNode requestNode = DefaultObjectMapper.INSTANCE.createObjectNode();
+        requestNode.put(BridgeFitBitWorkerProcessor.REQUEST_PARAM_DATE, "2017-12-11");
+        requestNode.put(BridgeFitBitWorkerProcessor.REQUEST_PARAM_STUDY_WHITELIST, "study2");
+        processor.accept(requestNode);
+    }
+
+    @Test(expectedExceptions = PollSqsWorkerBadRequestException.class, expectedExceptionsMessageRegExp =
+            "studyWhitelist can only contain strings")
+    public void studyWhitelistContainsNonStrings() throws Exception {
+        ArrayNode studyWhitelistNode = DefaultObjectMapper.INSTANCE.createArrayNode();
+        studyWhitelistNode.add(2);
+
+        ObjectNode requestNode = DefaultObjectMapper.INSTANCE.createObjectNode();
+        requestNode.put(BridgeFitBitWorkerProcessor.REQUEST_PARAM_DATE, "2017-12-11");
+        requestNode.set(BridgeFitBitWorkerProcessor.REQUEST_PARAM_STUDY_WHITELIST, studyWhitelistNode);
+        processor.accept(requestNode);
+    }
+
+    @Test
+    public void studyWhitelistNormalCase() throws Exception {
+        // Mock get study call. This returns a "full" study.
+        Study study2 = new Study().identifier("study2").synapseProjectId("project-2").synapseDataAccessTeamId(2222L)
+                .putOAuthProvidersItem(Constants.FITBIT_VENDOR_ID, new OAuthProvider());
+        when(mockBridgeHelper.getStudy("study2")).thenReturn(study2);
+
+        // Spy processStudy(). This is tested elsewhere.
+        doNothing().when(processor).processStudy(any(), any());
+
+        // Create request.
+        ArrayNode studyWhitelistNode = DefaultObjectMapper.INSTANCE.createArrayNode();
+        studyWhitelistNode.add("study2");
+
+        ObjectNode requestNode = DefaultObjectMapper.INSTANCE.createObjectNode();
+        requestNode.put(BridgeFitBitWorkerProcessor.REQUEST_PARAM_DATE, "2017-12-11");
+        requestNode.set(BridgeFitBitWorkerProcessor.REQUEST_PARAM_STUDY_WHITELIST, studyWhitelistNode);
+
+        // Execute
+        processor.accept(requestNode);
+
+        // Verify only one call to processStudy().
+        verify(processor).processStudy("2017-12-11", study2);
+
+        // Verify we never call Bridge Helper to get the list of studies
+        verify(mockBridgeHelper, never()).getAllStudies();
     }
 }

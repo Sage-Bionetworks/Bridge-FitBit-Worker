@@ -2,9 +2,11 @@ package org.sagebionetworks.bridge.fitbit.worker;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import javax.annotation.Resource;
 
@@ -32,6 +34,7 @@ public class BridgeFitBitWorkerProcessor implements ThrowingConsumer<JsonNode> {
 
     private static final int REPORTING_INTERVAL = 10;
     static final String REQUEST_PARAM_DATE = "date";
+    static final String REQUEST_PARAM_STUDY_WHITELIST = "studyWhitelist";
 
     private final RateLimiter perStudyRateLimiter = RateLimiter.create(1.0);
     private final RateLimiter perUserRateLimiter = RateLimiter.create(1.0);
@@ -92,13 +95,37 @@ public class BridgeFitBitWorkerProcessor implements ThrowingConsumer<JsonNode> {
         }
         String dateString = dateNode.textValue();
 
+        List<String> studyWhitelist = new ArrayList<>();
+        JsonNode studyWhitelistNode = jsonNode.get(REQUEST_PARAM_STUDY_WHITELIST);
+        if (studyWhitelistNode != null && !studyWhitelistNode.isNull()) {
+            if (!studyWhitelistNode.isArray()) {
+                throw new PollSqsWorkerBadRequestException("studyWhitelist must be an array");
+            }
+
+            for (JsonNode oneStudyIdNode : studyWhitelistNode) {
+                if (!oneStudyIdNode.isTextual()) {
+                    throw new PollSqsWorkerBadRequestException("studyWhitelist can only contain strings");
+                }
+                studyWhitelist.add(oneStudyIdNode.textValue());
+            }
+        }
+
         LOG.info("Received request for date " + dateString);
         Stopwatch requestStopwatch = Stopwatch.createStarted();
-        List<Study> studySummaryList = bridgeHelper.getAllStudies();
-        for (Study oneStudySummary : studySummaryList) {
+
+        List<String> studyIdList;
+        if (!studyWhitelist.isEmpty()) {
+            // If the study whitelist is specified, use it.
+            studyIdList = studyWhitelist;
+        } else {
+            // Otherwise, call Bridge to get all study summaries.
+            List<Study> studySummaryList = bridgeHelper.getAllStudies();
+            studyIdList = studySummaryList.stream().map(Study::getIdentifier).collect(Collectors.toList());
+        }
+
+        for (String studyId : studyIdList) {
             perStudyRateLimiter.acquire();
 
-            String studyId = oneStudySummary.getIdentifier();
             Stopwatch studyStopwatch = Stopwatch.createStarted();
             try {
                 // Study summary only contains ID. Get full study summary from details.
