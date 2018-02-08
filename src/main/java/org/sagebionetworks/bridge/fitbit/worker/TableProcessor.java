@@ -150,7 +150,9 @@ public class TableProcessor {
             setSynapseTableIdToDdb(study.getIdentifier(), tableId, newSynapseTableId);
             return newSynapseTableId;
         } else {
-            synapseHelper.safeUpdateTable(synapseTableId, columnModelList);
+            // For backwards compatibility, we set mergeDeletedFields=true, so that any fields in the table not in our
+            // schema are retained transparently.
+            synapseHelper.safeUpdateTable(synapseTableId, columnModelList, true);
             return synapseTableId;
         }
     }

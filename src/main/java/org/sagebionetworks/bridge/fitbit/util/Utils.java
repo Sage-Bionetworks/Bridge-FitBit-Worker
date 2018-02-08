@@ -4,14 +4,10 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
-import org.joda.time.DateTime;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import org.sagebionetworks.bridge.fitbit.schema.ColumnSchema;
 import org.sagebionetworks.bridge.fitbit.worker.Constants;
@@ -20,8 +16,6 @@ import org.sagebionetworks.bridge.rest.model.Study;
 
 /** Utility functions */
 public class Utils {
-    private static final Logger LOG = LoggerFactory.getLogger(Utils.class);
-
     private static final Joiner JOINER_COLUMN_JOINER = Joiner.on('\t').useForNull("");
 
     // Every table has a healthCode (guid) and createdOn (YYYY-MM-DD) column.
@@ -66,91 +60,6 @@ public class Utils {
                 && study.getSynapseDataAccessTeamId() != null
                 && study.getOAuthProviders() != null
                 && study.getOAuthProviders().containsKey(Constants.FITBIT_VENDOR_ID);
-    }
-
-    /** Helper method to serialize a JsonNode to write to the given Column. */
-    public static String serializeJsonForColumn(JsonNode node, ColumnSchema columnSchema) {
-        String columnId = columnSchema.getColumnId();
-
-        // Short-cut: null check.
-        if (node == null || node.isNull()) {
-            return null;
-        }
-
-        // Canonicalize into an object.
-        Object value = null;
-        switch (columnSchema.getColumnType()) {
-            case BOOLEAN:
-                if (node.isBoolean()) {
-                    value = node.booleanValue();
-                } else {
-                    LOG.warn("Expected boolean for column " + columnId + ", got " + node.getNodeType().name());
-                }
-                break;
-            case DATE:
-                // Currently, all dates from FitBit web API are in UTC, so we can just use epoch milliseconds,
-                // which is what Synapse expects anyway.
-                if (node.isTextual()) {
-                    String dateTimeStr = node.textValue();
-                    try {
-                        value = DateTime.parse(dateTimeStr).getMillis();
-                    } catch (IllegalArgumentException ex) {
-                        LOG.warn("Invalid DateTime format " + dateTimeStr);
-                    }
-                } else {
-                    LOG.warn("Expected string for column " + columnId + ", got " + node.getNodeType().name());
-                }
-                break;
-            case DOUBLE:
-                if (node.isNumber()) {
-                    value = node.decimalValue().toPlainString();
-                } else {
-                    LOG.warn("Expected number for column " + columnId + ", got " + node.getNodeType().name());
-                }
-                break;
-            case INTEGER:
-                if (node.isNumber()) {
-                    value = node.longValue();
-                } else {
-                    LOG.warn("Expected number for column " + columnId + ", got " + node.getNodeType().name());
-                }
-                break;
-            case LARGETEXT:
-                // LargeText is used for when the value is an array or an object. In this case, we want to
-                // write the JSON verbatim to Synapse.
-                value = node;
-                break;
-            case STRING:
-                String textValue;
-                if (node.isTextual()) {
-                    textValue = node.textValue();
-                } else {
-                    textValue = node.toString();
-                }
-
-                // Strings have a max length. If the string is too long, truncate it.
-                int valueLength = textValue.length();
-                int maxLength = columnSchema.getMaxLength();
-                if (valueLength > maxLength) {
-                    LOG.warn("Truncating value of length " + valueLength + " to max length " + maxLength +
-                            " for column " + columnId);
-                    textValue = textValue.substring(0, maxLength);
-                }
-                value = textValue;
-                break;
-            default:
-                LOG.warn("Unexpected type " + columnSchema.getColumnType().name() + " for column " + columnId);
-                break;
-        }
-
-        // If the canonicalized value is null (possibly because of type errors), return null instead of converting to
-        // a string.
-        if (value == null) {
-            return null;
-        }
-
-        // Convert to string.
-        return String.valueOf(value);
     }
 
     /** Helper method, which formats and writes a row of values (represented as a String List) to the given Writer. */

@@ -166,7 +166,7 @@
                 "columns":[
                     {
                         "columnId":"dataset",
-                        "columnType":"LARGETEXT"
+                        "columnType":"FILEHANDLEID"
                     },
                     {
                         "columnId":"datasetInterval",
