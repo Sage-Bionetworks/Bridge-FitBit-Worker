@@ -1,6 +1,7 @@
 package org.sagebionetworks.bridge.fitbit.worker;
 
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
@@ -127,7 +128,8 @@ public class TableProcessorTest {
         verify(mockDdbTablesMap, never()).putItem(any(Item.class));
 
         ArgumentCaptor<List> columnModelListCaptor = ArgumentCaptor.forClass(List.class);
-        verify(mockSynapseHelper).safeUpdateTable(eq(SYNAPSE_TABLE_ID), columnModelListCaptor.capture());
+        verify(mockSynapseHelper).safeUpdateTable(eq(SYNAPSE_TABLE_ID), columnModelListCaptor.capture(),
+                eq(true));
         validateColumnModelList(columnModelListCaptor.getValue());
     }
 
@@ -156,7 +158,7 @@ public class TableProcessorTest {
         validateCleanFileSystem();
 
         // Verify back-ends
-        verify(mockSynapseHelper, never()).safeUpdateTable(any(), any());
+        verify(mockSynapseHelper, never()).safeUpdateTable(any(), any(), anyBoolean());
 
         ArgumentCaptor<List> columnModelListCaptor = ArgumentCaptor.forClass(List.class);
         verify(mockSynapseHelper).createTableWithColumnsAndAcls(columnModelListCaptor.capture(),
