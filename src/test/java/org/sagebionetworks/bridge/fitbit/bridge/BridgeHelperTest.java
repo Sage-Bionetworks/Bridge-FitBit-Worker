@@ -78,8 +78,8 @@ public class BridgeHelperTest {
     public void getStudy() throws Exception {
         // Mock client manager call to getStudy. This contains dummy values for Synapse Project ID and Team ID to
         // "test" that our Study object is complete.
-        StudiesApi mockApi = mock(StudiesApi.class);
-        when(mockClientManager.getClient(StudiesApi.class)).thenReturn(mockApi);
+        ForWorkersApi mockApi = mock(ForWorkersApi.class);
+        when(mockClientManager.getClient(ForWorkersApi.class)).thenReturn(mockApi);
 
         Study study = new Study().identifier("my-study").synapseProjectId("my-project").synapseDataAccessTeamId(1111L);
         Call<Study> mockCall = mockCallForValue(study);
