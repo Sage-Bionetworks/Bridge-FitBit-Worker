@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import org.sagebionetworks.bridge.rest.ClientManager;
+import org.sagebionetworks.bridge.rest.api.ForWorkersApi;
 import org.sagebionetworks.bridge.rest.api.StudiesApi;
 import org.sagebionetworks.bridge.rest.model.Study;
 
@@ -35,6 +36,6 @@ public class BridgeHelper {
 
     /** Gets the study for the given ID. */
     public Study getStudy(String studyId) throws IOException {
-        return clientManager.getClient(StudiesApi.class).getStudy(studyId).execute().body();
+        return clientManager.getClient(ForWorkersApi.class).getStudy(studyId).execute().body();
     }
 }
